@@ -1,0 +1,37 @@
+app:
+  name: curalink-backend
+  services:
+    - name: api
+      type: web
+      instance_type: free
+      regions:
+        - fra
+      env:
+        - name: DATABASE_URL
+        - name: SECRET_KEY
+        - name: ALGORITHM
+          value: HS256
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          value: "30"
+        - name: SAMBANOVA_API_KEY
+        - name: ENTREZ_EMAIL
+        - name: ORCID_CLIENT_ID
+        - name: ORCID_CLIENT_SECRET
+        - name: PYTHON_VERSION
+          value: "3.9"
+      build:
+        type: buildpack
+        buildpack: heroku/python
+      ports:
+        - port: 8000
+          protocol: http
+      routes:
+        - path: /
+          port: 8000
+      health_checks:
+        - http:
+            path: /health
+            port: 8000
+      scaling:
+        min: 1
+        max: 1

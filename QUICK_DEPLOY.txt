@@ -1,0 +1,142 @@
+═══════════════════════════════════════════════════════════════
+  CURALINK - QUICK DEPLOYMENT REFERENCE
+  5-Step Process to Deploy on 100% Free Platforms
+═══════════════════════════════════════════════════════════════
+
+STEP 1: PUSH TO GITHUB
+─────────────────────────────────────────────────────────────
+
+  ./deploy-setup.sh
+  
+  OR manually:
+  
+  git init
+  git add .
+  git commit -m "Ready for deployment"
+  git remote add origin https://github.com/USERNAME/curalink.git
+  git push -u origin main
+
+═══════════════════════════════════════════════════════════════
+
+STEP 2: DATABASE (Choose One)
+─────────────────────────────────────────────────────────────
+
+  OPTION A - Aiven MySQL (Recommended):
+  ──────────────────────────────────────
+  1. https://aiven.io → Sign up
+  2. Create Service → MySQL → Free tier
+  3. Copy connection string
+  
+  OPTION B - FreeSQLDatabase:
+  ────────────────────────────
+  1. https://freesqldatabase.com → Create DB
+  2. Check email for credentials
+  
+  OPTION C - Koyeb PostgreSQL:
+  ─────────────────────────────
+  1. https://koyeb.com → Databases
+  2. Create PostgreSQL → Free tier
+
+═══════════════════════════════════════════════════════════════
+
+STEP 3: DEPLOY BACKEND (Koyeb)
+─────────────────────────────────────────────────────────────
+
+  1. https://koyeb.com → Create App
+  2. GitHub → Select repo → curalink
+  3. Root directory: curalink-backend
+  4. Add environment variables:
+  
+     DATABASE_URL=[from step 2]
+     SECRET_KEY=[random 32+ chars]
+     ALGORITHM=HS256
+     ACCESS_TOKEN_EXPIRE_MINUTES=30
+     SAMBANOVA_API_KEY=32b6f980-63a7-4344-972d-e2b051a3e123
+     ENTREZ_EMAIL=your-email@example.com
+     ORCID_CLIENT_ID=your-orcid-id
+     ORCID_CLIENT_SECRET=your-orcid-secret
+     PORT=8000
+     HOST=0.0.0.0
+     
+  5. Deploy → Wait 3-5 min
+  6. Save URL: https://YOUR-APP.koyeb.app
+
+═══════════════════════════════════════════════════════════════
+
+STEP 4: DEPLOY FRONTEND (Netlify)
+─────────────────────────────────────────────────────────────
+
+  1. https://netlify.com → Add new site
+  2. GitHub → Select repo → curalink
+  3. Base directory: curalink-frontend
+  4. Build command: npm run build
+  5. Publish directory: .next
+  6. Add environment variables:
+  
+     NEXT_PUBLIC_API_URL=https://YOUR-APP.koyeb.app
+     NEXT_PUBLIC_WS_URL=wss://YOUR-APP.koyeb.app
+     
+  7. Deploy → Wait 2-4 min
+  8. Your site is live! 🎉
+
+═══════════════════════════════════════════════════════════════
+
+STEP 5: VERIFY DEPLOYMENT
+─────────────────────────────────────────────────────────────
+
+  ✓ Visit your Netlify URL
+  ✓ Create test account
+  ✓ Log in → Dashboard should load
+  ✓ Check browser console: "WebSocket connected"
+  ✓ Search trials → Should return results
+  ✓ Add favorite → Refresh → Still there
+  ✓ Open Cura AI → Chat should work
+
+  ALL SHOULD WORK EXACTLY LIKE LOCALHOST!
+
+═══════════════════════════════════════════════════════════════
+
+PLATFORMS USED (All 100% Free):
+─────────────────────────────────────────────────────────────
+
+  Frontend:   Netlify
+  Backend:    Koyeb
+  Database:   Aiven MySQL / FreeSQLDB / Koyeb PostgreSQL
+  Code:       GitHub
+  
+  TOTAL COST: $0.00/month
+
+═══════════════════════════════════════════════════════════════
+
+IMPORTANT FILES:
+─────────────────────────────────────────────────────────────
+
+  📄 DEPLOYMENT_INSTRUCTIONS.txt  - Complete guide
+  📄 DEPLOYMENT_CHECKLIST.txt     - Verification list
+  📄 DEPLOYMENT_SUMMARY.txt       - Full overview
+  📄 deploy-setup.sh              - Auto setup script
+  📄 QUICK_DEPLOY.txt            - This file
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+─────────────────────────────────────────────────────────────
+
+  Problem: WebSocket won't connect
+  Solution: Use "wss://" not "ws://" in NEXT_PUBLIC_WS_URL
+  
+  Problem: Database connection failed
+  Solution: Check DATABASE_URL format and credentials
+  
+  Problem: 404 on API calls
+  Solution: Verify NEXT_PUBLIC_API_URL in frontend env vars
+  
+  Problem: Build failed
+  Solution: Check logs, ensure all env vars are set
+
+═══════════════════════════════════════════════════════════════
+
+That's it! Your CuraLink app is now live and accessible
+worldwide, running on 100% free infrastructure! 🚀
+
+═══════════════════════════════════════════════════════════════

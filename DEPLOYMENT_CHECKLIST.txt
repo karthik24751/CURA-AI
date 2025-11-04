@@ -1,0 +1,186 @@
+═══════════════════════════════════════════════════════════════
+CURALINK DEPLOYMENT CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+PRE-DEPLOYMENT SETUP
+════════════════════
+
+☐ 1. Git repository initialized
+     Command: git init
+     
+☐ 2. GitHub repository created
+     URL: https://github.com/YOUR_USERNAME/curalink
+     
+☐ 3. Code pushed to GitHub
+     Commands:
+       git add .
+       git commit -m "Initial commit"
+       git remote add origin YOUR_REPO_URL
+       git push -u origin main
+
+DATABASE SETUP (Choose ONE)
+════════════════════════════
+
+☐ 4a. Aiven MySQL setup (RECOMMENDED)
+      - Account created at https://aiven.io
+      - MySQL service created (FREE tier)
+      - Connection string saved
+      
+☐ 4b. FreeSQLDatabase setup (Alternative)
+      - Database created at https://freesqldatabase.com
+      - Credentials received via email
+      - Connection string constructed
+      
+☐ 4c. Koyeb PostgreSQL (Alternative)
+      - Database created in Koyeb dashboard
+      - Connection string saved
+
+☐ 5. Database schema initialized
+     - SQL from setup_database.sql executed
+     OR will auto-create on first backend run
+
+BACKEND DEPLOYMENT (KOYEB)
+═══════════════════════════
+
+☐ 6. Koyeb account created
+     URL: https://www.koyeb.com
+
+☐ 7. App created from GitHub repo
+     - Repository: curalink
+     - Root directory: curalink-backend
+     - Port: 8000
+
+☐ 8. Environment variables configured:
+     ☐ DATABASE_URL
+     ☐ SECRET_KEY (32+ random characters)
+     ☐ ALGORITHM = HS256
+     ☐ ACCESS_TOKEN_EXPIRE_MINUTES = 30
+     ☐ SAMBANOVA_API_KEY
+     ☐ ENTREZ_EMAIL
+     ☐ ORCID_CLIENT_ID
+     ☐ ORCID_CLIENT_SECRET
+     ☐ PORT = 8000
+     ☐ HOST = 0.0.0.0
+
+☐ 9. Backend deployed successfully
+     Test URL: https://your-app.koyeb.app/health
+     Expected: {"status": "healthy"}
+
+☐ 10. Backend URL saved for frontend config
+
+FRONTEND DEPLOYMENT (NETLIFY)
+══════════════════════════════
+
+☐ 11. Netlify account created
+      URL: https://www.netlify.com
+
+☐ 12. Site created from GitHub repo
+      - Repository: curalink
+      - Base directory: curalink-frontend
+      - Build command: npm run build
+      - Publish directory: .next
+
+☐ 13. Environment variables configured:
+      ☐ NEXT_PUBLIC_API_URL = https://your-app.koyeb.app
+      ☐ NEXT_PUBLIC_WS_URL = wss://your-app.koyeb.app
+
+☐ 14. Frontend deployed successfully
+      Test URL: https://your-site.netlify.app
+      Expected: CuraLink homepage visible
+
+VERIFICATION TESTS
+═══════════════════
+
+☐ 15. Homepage loads correctly
+      - All images/icons visible
+      - Styling matches localhost
+      - No console errors
+
+☐ 16. User registration works
+      - Can create new account
+      - Redirects to onboarding
+      - Data saved to database
+
+☐ 17. User login works
+      - Can log in with credentials
+      - JWT token received
+      - Redirects to dashboard
+
+☐ 18. Dashboard loads
+      - Patient/Researcher dashboard visible
+      - All UI elements render
+      - Matches localhost appearance
+
+☐ 19. WebSocket connection established
+      - Browser console shows "WebSocket connected"
+      - Real-time updates work
+      - No connection errors
+
+☐ 20. Database operations work
+      - Can add favorites
+      - Can search trials
+      - Can create forum posts
+      - Data persists on refresh
+
+☐ 21. AI features work
+      - Cura AI chat responds
+      - Trial matching works
+      - Publication search works
+
+☐ 22. Real-time chat works
+      - Can send messages
+      - Messages appear instantly
+      - Notifications received
+
+☐ 23. Mobile responsive
+      - Tested on mobile device
+      - UI adapts correctly
+      - All features functional
+
+FINAL CHECKLIST
+════════════════
+
+☐ 24. All environment variables double-checked
+☐ 25. Database has data (test accounts, trials, etc.)
+☐ 26. HTTPS enabled (automatic on Netlify/Koyeb)
+☐ 27. WebSocket uses WSS (secure WebSocket)
+☐ 28. No console errors in browser
+☐ 29. No errors in backend logs (Koyeb)
+☐ 30. No errors in frontend logs (Netlify)
+
+OPTIONAL ENHANCEMENTS
+═══════════════════════
+
+☐ 31. Custom domain configured (if desired)
+☐ 32. Monitoring/analytics set up
+☐ 33. Error tracking configured
+☐ 34. Backup strategy planned
+
+═══════════════════════════════════════════════════════════════
+
+DEPLOYMENT STATUS: 
+- Backend: https://_____________.koyeb.app
+- Frontend: https://_____________.netlify.app
+- Database: [Provider: ________ ]
+
+Deployment Date: ________________
+Notes: 
+
+
+
+
+═══════════════════════════════════════════════════════════════
+
+🎉 Once all items are checked, your deployment is COMPLETE!
+
+The application should work exactly like localhost with:
+✓ Same UI/design
+✓ Real-time features
+✓ Full database functionality
+✓ WebSocket connections
+✓ AI-powered features
+✓ Mobile responsive
+
+All on 100% FREE hosting! 🚀
+
+═══════════════════════════════════════════════════════════════

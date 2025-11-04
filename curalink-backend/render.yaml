@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: curalink-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --ws-ping-interval 30 --ws-ping-timeout 30
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: DATABASE_URL
+        fromSecret: database_url
+      - key: SECRET_KEY
+        fromSecret: secret_key
+      - key: SAMBANOVA_API_KEY
+        fromSecret: sambanova_api_key

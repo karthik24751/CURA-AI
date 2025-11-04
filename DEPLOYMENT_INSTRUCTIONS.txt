@@ -1,0 +1,367 @@
+═══════════════════════════════════════════════════════════════════════════
+  CURALINK - 100% FREE DEPLOYMENT GUIDE
+  Platforms: Koyeb (Backend) + Netlify (Frontend) + Free Database
+═══════════════════════════════════════════════════════════════════════════
+
+This guide will help you deploy CuraLink to completely free hosting platforms
+while maintaining EXACT localhost functionality (UI, real-time, backend logic).
+
+═══════════════════════════════════════════════════════════════════════════
+STEP 1: PREPARE YOUR CODE FOR DEPLOYMENT
+═══════════════════════════════════════════════════════════════════════════
+
+1. Initialize Git repository (if not already done):
+   cd "/Users/srinivasarao/Desktop/AI PROJECT"
+   git init
+   git add .
+   git commit -m "Initial commit - CuraLink project"
+
+2. Create a GitHub repository:
+   - Go to https://github.com/new
+   - Create a new repository named "curalink"
+   - Do NOT initialize with README (we already have code)
+   
+3. Push your code to GitHub:
+   git remote add origin https://github.com/YOUR_USERNAME/curalink.git
+   git branch -M main
+   git push -u origin main
+
+═══════════════════════════════════════════════════════════════════════════
+STEP 2: SET UP FREE DATABASE (Choose ONE option)
+═══════════════════════════════════════════════════════════════════════════
+
+OPTION A: Aiven MySQL (RECOMMENDED - 100% Free)
+────────────────────────────────────────────────
+1. Go to: https://aiven.io/
+2. Sign up for free account
+3. Click "Create Service" → Select "MySQL"
+4. Choose:
+   - Cloud: AWS
+   - Region: Any (closest to you)
+   - Plan: "Startup-4" (FREE tier)
+5. Service name: "curalink-db"
+6. Click "Create Service" (wait 3-5 minutes for deployment)
+7. Once running, click on the service → "Overview" tab
+8. Copy the "Service URI" - it looks like:
+   mysql://username:password@host:port/defaultdb
+9. Save this URL - you'll need it for environment variables
+
+OPTION B: FreeSQLDatabase.com (Alternative - 100% Free)
+────────────────────────────────────────────────────────
+1. Go to: https://www.freesqldatabase.com/
+2. Fill the form:
+   - Database Name: curalink
+   - Email: your-email@example.com
+3. Click "Create Database"
+4. Check your email for database credentials
+5. Construct your DATABASE_URL:
+   mysql+pymysql://username:password@host:port/database_name
+6. Save this URL - you'll need it
+
+OPTION C: Koyeb PostgreSQL (Alternative - 100% Free)
+─────────────────────────────────────────────────────
+1. Go to: https://www.koyeb.com/
+2. Sign up for free account
+3. Go to "Databases" → "Create Database"
+4. Choose PostgreSQL, select free tier
+5. Database name: "curalink"
+6. Wait for deployment (2-3 minutes)
+7. Copy the connection string from dashboard
+8. Save this URL - you'll need it
+
+════════════════════════════════════════════════════════════════════════
+STEP 3: INITIALIZE DATABASE SCHEMA
+════════════════════════════════════════════════════════════════════════
+
+After setting up your database, you need to create the tables:
+
+1. Open your database management tool or use the provider's web interface
+2. Execute the SQL from: curalink-backend/setup_database.sql
+   OR
+3. The backend will auto-create tables on first run (SQLAlchemy migrations)
+
+════════════════════════════════════════════════════════════════════════
+STEP 4: DEPLOY BACKEND TO KOYEB (100% Free)
+════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://www.koyeb.com/
+2. Sign up or log in to your account
+3. Click "Create App"
+4. Choose "GitHub" as deployment method
+5. Connect your GitHub account and select your "curalink" repository
+6. Configure deployment:
+   
+   Builder: Buildpack
+   ──────────────────
+   Build command: (leave empty - uses Procfile)
+   Run command: (leave empty - uses Procfile)
+   
+   Advanced Settings:
+   ──────────────────
+   - Branch: main
+   - Root directory: curalink-backend
+   - Port: 8000
+   
+   Environment Variables (CRITICAL - Add all of these):
+   ────────────────────────────────────────────────────
+   DATABASE_URL = [Your database URL from Step 2]
+   SECRET_KEY = [Generate a random 32+ character string]
+   ALGORITHM = HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES = 30
+   SAMBANOVA_API_KEY = 32b6f980-63a7-4344-972d-e2b051a3e123
+   ENTREZ_EMAIL = your-email@example.com
+   ORCID_CLIENT_ID = your-orcid-client-id
+   ORCID_CLIENT_SECRET = your-orcid-client-secret
+   PORT = 8000
+   HOST = 0.0.0.0
+   
+7. Click "Deploy"
+8. Wait 3-5 minutes for deployment
+9. Once deployed, you'll get a URL like: https://your-app-name.koyeb.app
+10. Test the backend:
+    - Visit: https://your-app-name.koyeb.app
+    - You should see: {"message": "Welcome to CuraLink API", ...}
+    - Visit: https://your-app-name.koyeb.app/health
+    - You should see: {"status": "healthy"}
+
+11. SAVE YOUR BACKEND URL! You'll need it for frontend deployment.
+
+IMPORTANT NOTES:
+- Koyeb free tier: 1 instance, always running, WebSocket support ✓
+- Your app will be at: https://your-app-name.koyeb.app
+- WebSocket will work at: wss://your-app-name.koyeb.app
+
+════════════════════════════════════════════════════════════════════════
+STEP 5: DEPLOY FRONTEND TO NETLIFY (100% Free)
+════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://www.netlify.com/
+2. Sign up or log in
+3. Click "Add new site" → "Import an existing project"
+4. Connect to GitHub and select your "curalink" repository
+5. Configure build settings:
+   
+   Branch to deploy: main
+   Base directory: curalink-frontend
+   Build command: npm run build
+   Publish directory: .next
+   
+6. Click "Show advanced" → "New variable"
+   
+   Environment Variables (CRITICAL - Add these):
+   ──────────────────────────────────────────────
+   NEXT_PUBLIC_API_URL = https://your-backend-app.koyeb.app
+   NEXT_PUBLIC_WS_URL = wss://your-backend-app.koyeb.app
+   
+   (Replace "your-backend-app.koyeb.app" with YOUR actual Koyeb URL from Step 4)
+   
+7. Click "Deploy site"
+8. Wait 2-4 minutes for deployment
+9. Once deployed, you'll get a URL like: https://random-name.netlify.app
+10. Click "Site settings" → "Change site name" to customize
+11. Your frontend is now live!
+
+IMPORTANT NOTES:
+- Netlify free tier: Unlimited sites, 100GB bandwidth/month
+- Automatic HTTPS enabled
+- Auto-deploys on git push to main branch
+
+════════════════════════════════════════════════════════════════════════
+STEP 6: VERIFY DEPLOYMENT
+════════════════════════════════════════════════════════════════════════
+
+1. Open your Netlify URL in browser
+2. You should see the CuraLink homepage (identical to localhost)
+3. Test functionality:
+   
+   ✓ User Registration:
+     - Click "Get Started" → "Sign Up"
+     - Create a test patient account
+     - Should redirect to onboarding
+   
+   ✓ Login:
+     - Log in with your test account
+     - Should see patient dashboard
+   
+   ✓ Real-time Features:
+     - Open browser console (F12)
+     - Check for "WebSocket connected" message
+     - Try searching for clinical trials
+     - Results should load in real-time
+   
+   ✓ Database Operations:
+     - Add a trial to favorites
+     - Refresh page - favorites should persist
+     - This confirms database is working
+   
+   ✓ AI Features:
+     - Open Cura AI chat
+     - Ask a medical question
+     - AI should respond (confirms API integration)
+
+2. Test on Mobile:
+   - Open the Netlify URL on your phone
+   - UI should be responsive and identical
+   - All features should work
+
+3. Test WebSocket Real-time:
+   - Open app in two different browsers
+   - Log in with different accounts
+   - Send a chat message
+   - Should appear instantly in other browser
+
+════════════════════════════════════════════════════════════════════════
+STEP 7: TROUBLESHOOTING
+════════════════════════════════════════════════════════════════════════
+
+If Backend (Koyeb) fails to deploy:
+────────────────────────────────────
+1. Check Koyeb logs: Dashboard → Your App → Logs
+2. Common issues:
+   - Missing environment variables → Add all from Step 4
+   - Database connection failed → Verify DATABASE_URL format
+   - Port binding error → Ensure PORT=8000 in env vars
+
+If Frontend (Netlify) fails to build:
+──────────────────────────────────────
+1. Check Netlify deploy logs
+2. Common issues:
+   - Build command failed → Check package.json scripts
+   - Missing env vars → Add NEXT_PUBLIC_* variables
+   - Out of memory → Contact Netlify support (rarely happens)
+
+If WebSocket doesn't connect:
+──────────────────────────────
+1. Check browser console for errors
+2. Verify NEXT_PUBLIC_WS_URL uses "wss://" (not "ws://")
+3. Verify backend is running: visit backend-url/health
+4. Koyeb supports WebSocket by default - should work automatically
+
+If Database connection fails:
+──────────────────────────────
+1. Test database connection from backend logs
+2. Verify DATABASE_URL format:
+   - MySQL: mysql+pymysql://user:pass@host:port/db
+   - PostgreSQL: postgresql://user:pass@host:port/db
+3. Check database service is running in provider dashboard
+4. Verify IP whitelist (if required by provider)
+
+════════════════════════════════════════════════════════════════════════
+STEP 8: CONTINUOUS DEPLOYMENT (Automatic Updates)
+════════════════════════════════════════════════════════════════════════
+
+Your deployment is now set up for automatic updates:
+
+1. Make changes to your code locally
+2. Commit and push to GitHub:
+   git add .
+   git commit -m "Description of changes"
+   git push origin main
+
+3. Koyeb will automatically:
+   - Detect the push
+   - Rebuild backend
+   - Deploy new version (2-3 minutes)
+
+4. Netlify will automatically:
+   - Detect the push
+   - Rebuild frontend
+   - Deploy new version (1-2 minutes)
+
+NO MANUAL DEPLOYMENT NEEDED! Just push to GitHub.
+
+════════════════════════════════════════════════════════════════════════
+STEP 9: MONITORING & MAINTENANCE
+════════════════════════════════════════════════════════════════════════
+
+Backend Monitoring (Koyeb):
+───────────────────────────
+- Dashboard: https://app.koyeb.com/
+- View logs: App → Logs tab
+- Check metrics: App → Metrics tab
+- Free tier: 100% uptime guarantee
+
+Frontend Monitoring (Netlify):
+───────────────────────────────
+- Dashboard: https://app.netlify.com/
+- View deploy history: Site → Deploys
+- Check analytics: Site → Analytics
+- View logs: Deploy → Deploy log
+
+Database Monitoring:
+────────────────────
+- Aiven: https://console.aiven.io/
+- Check usage: Service → Metrics
+- Free tier limits: 1GB storage
+
+COST BREAKDOWN (ALL FREE):
+──────────────────────────
+✓ Koyeb Backend: $0/month (Free tier: 1 web service, 512MB RAM)
+✓ Netlify Frontend: $0/month (100GB bandwidth, unlimited sites)
+✓ Aiven MySQL: $0/month (1GB storage, 1 CPU, 1GB RAM)
+✓ GitHub: $0/month (unlimited public repos)
+
+TOTAL: $0/month forever (on free tiers)
+
+════════════════════════════════════════════════════════════════════════
+STEP 10: CUSTOM DOMAIN (Optional)
+════════════════════════════════════════════════════════════════════════
+
+To use your own domain (e.g., curalink.com):
+
+Frontend (Netlify):
+───────────────────
+1. Buy domain from Namecheap/Google Domains
+2. Netlify → Site settings → Domain management
+3. Add custom domain
+4. Update DNS records as instructed
+5. SSL certificate auto-generated
+
+Backend (Koyeb):
+────────────────
+1. Koyeb → App → Domains
+2. Add custom domain (e.g., api.curalink.com)
+3. Update DNS CNAME record
+4. SSL auto-enabled
+
+════════════════════════════════════════════════════════════════════════
+SUMMARY - YOUR DEPLOYED URLS
+════════════════════════════════════════════════════════════════════════
+
+After completing all steps, you'll have:
+
+Frontend:  https://your-site.netlify.app
+Backend:   https://your-app.koyeb.app
+Database:  [Managed by provider]
+
+Everything works EXACTLY like localhost:
+✓ Same UI/UX
+✓ Real-time WebSocket updates
+✓ Full database functionality
+✓ AI-powered features
+✓ Authentication & authorization
+✓ All API endpoints
+✓ Mobile responsive
+
+The deployment is production-ready and scalable within free tier limits!
+
+════════════════════════════════════════════════════════════════════════
+SUPPORT & RESOURCES
+════════════════════════════════════════════════════════════════════════
+
+Koyeb Docs:    https://www.koyeb.com/docs
+Netlify Docs:  https://docs.netlify.com/
+Aiven Docs:    https://docs.aiven.io/
+
+Need help? Check:
+- Koyeb Community: https://community.koyeb.com/
+- Netlify Community: https://answers.netlify.com/
+- Aiven Support: support@aiven.io
+
+════════════════════════════════════════════════════════════════════════
+
+Deployment completed! Your CuraLink application is now live and accessible
+worldwide, running on 100% free infrastructure with the exact same
+functionality as your localhost environment.
+
+════════════════════════════════════════════════════════════════════════

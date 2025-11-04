@@ -1,0 +1,1 @@
+# No external dependencies - using only built-in Python libraries
