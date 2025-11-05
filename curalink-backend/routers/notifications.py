@@ -7,7 +7,7 @@ from schemas import NotificationCreate, NotificationResponse
 from auth_utils import get_current_user
 from datetime import datetime
 
-router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+router = APIRouter(tags=["notifications"])
 
 @router.get("/", response_model=List[NotificationResponse])
 async def get_notifications(
@@ -105,6 +105,20 @@ async def delete_notification(
     db.commit()
     
     return {"message": "Notification deleted"}
+
+@router.delete("/")
+async def delete_all_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete all notifications for the current user"""
+    deleted_count = db.query(Notification).filter(
+        Notification.user_id == current_user.id
+    ).delete()
+    
+    db.commit()
+    
+    return {"message": f"Deleted {deleted_count} notifications"}
 
 @router.get("/unread-count")
 async def get_unread_count(

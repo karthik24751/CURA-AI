@@ -17,3 +17,4 @@ aiofiles==23.2.1
 biopython==1.83
 redis==5.0.1
 gunicorn==21.2.0
+mangum==0.17.0

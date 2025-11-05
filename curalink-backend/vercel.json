@@ -2,7 +2,12 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index"
+      "destination": "/api/main"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "mysql://avnadmin:AVNS_t1nvmPZWXha3_Qa3wZw@mysql-32111b5d-karthikcrazy915-6fd1.j.aivencloud.com:17388/defaultdb?ssl-mode=REQUIRED",
+    "VERCEL": "1",
+    "SAMBANOVA_API_KEY": "2d3c7fae-9a0c-4c03-bb5a-d72f12bab896"
+  }
 }

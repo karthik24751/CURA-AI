@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from database import get_db
 from models import User, MeetingRequest
 from schemas import MeetingRequestCreate, MeetingRequestResponse
@@ -140,8 +141,15 @@ async def update_meeting_status(
         raise HTTPException(status_code=403, detail="Only the expert can update this request")
     
     new_status = status_data.get("status")
+    
+    if not new_status:
+        raise HTTPException(status_code=400, detail="Status field is required")
+    
+    # Accept both 'rejected' and 'declined' for backwards compatibility
+    if new_status == "declined":
+        new_status = "rejected"
     if new_status not in ["accepted", "rejected"]:
-        raise HTTPException(status_code=400, detail="Invalid status")
+        raise HTTPException(status_code=400, detail=f"Invalid status '{new_status}'. Must be 'accepted', 'rejected', or 'declined'")
     
     meeting_request.status = new_status
     db.commit()
@@ -177,7 +185,42 @@ async def update_meeting_status(
         })
     )
     
-    return {"message": f"Meeting request {new_status}", "status": new_status}
+@router.post("/video-call")
+async def initiate_video_call(
+    call_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Initiate a video call to another user"""
+    target_user_id = call_data.get("target_user_id")
+    room_name = call_data.get("room_name")
+
+    if not target_user_id or not room_name:
+        raise HTTPException(status_code=400, detail="target_user_id and room_name required")
+
+    # Check if meeting exists and is accepted
+    meeting = db.query(MeetingRequest).filter(
+        ((MeetingRequest.requester_id == current_user.id) & (MeetingRequest.expert_id == target_user_id)) |
+        ((MeetingRequest.requester_id == target_user_id) & (MeetingRequest.expert_id == current_user.id)),
+        MeetingRequest.status == "accepted"
+    ).first()
+
+    if not meeting:
+        raise HTTPException(status_code=403, detail="No accepted meeting found between users")
+
+    # Send video call notification via WebSocket
+    await manager.send_personal_message(
+        str(target_user_id),
+        json.dumps({
+            "type": "video_call",
+            "from": str(current_user.id),
+            "caller_name": current_user.full_name,
+            "room_name": room_name,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    )
+
+    return {"message": "Video call initiated", "room_name": room_name}
 
 @router.delete("/{request_id}")
 async def cancel_meeting_request(
@@ -187,12 +230,15 @@ async def cancel_meeting_request(
 ):
     """Cancel a meeting request"""
     meeting_request = db.query(MeetingRequest).filter(
-        MeetingRequest.id == request_id,
-        MeetingRequest.requester_id == current_user.id
+        MeetingRequest.id == request_id
     ).first()
     
     if not meeting_request:
         raise HTTPException(status_code=404, detail="Meeting request not found")
+    
+    # Allow both requester and expert to delete the meeting
+    if meeting_request.requester_id != current_user.id and meeting_request.expert_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this meeting")
     
     db.delete(meeting_request)
     db.commit()
