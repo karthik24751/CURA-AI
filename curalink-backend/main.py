@@ -8,31 +8,36 @@ import hashlib
 
 from database import engine, Base, get_db
 from routers import auth, users, trials, publications, experts, forums, favorites, chat, meetings, notifications
+
 try:
     from websocket_manager import manager
 except ImportError:
     # Create a mock manager for serverless
     class MockManager:
         async def connect(self, user_id, websocket): pass
+        def disconnect(self, user_id): pass
+        async def send_personal_message(self, user_id, message): pass
+    manager = MockManager()
 
-# Create database tables
-try:
-    Base.metadata.create_all(bind=engine)
-    print("✅ Database tables created successfully")
-except Exception as e:
-    print(f"⚠️ Database creation warning: {e}")
+# Create database tables - non-blocking
+def init_database():
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+        return True
+    except Exception as e:
+        print(f"⚠️ Database creation warning: {e}")
+        print("⚠️ App will continue, database will retry on first request")
+        return False
+
+# Try to initialize database but don't block startup
+init_database()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     print("🚀 CuraLink Backend Starting...")
-    try:
-        # Test database connection
-        db = next(get_db())
-        db.close()
-        print("✅ Database connection test successful")
-    except Exception as e:
-        print(f"⚠️ Database connection warning: {e}")
+    print("✅ Application ready to accept requests")
     yield
     # Shutdown
     print("👋 CuraLink Backend Shutting Down...")

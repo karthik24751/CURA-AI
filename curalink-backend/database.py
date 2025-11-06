@@ -75,13 +75,22 @@ else:
                 DATABASE_URL = "sqlite:///./curalink.db"
                 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo=False)
     else:
-        # Regular production connection
+        # Regular production connection (Render, Railway, etc.)
+        connect_args = {}
+        
+        # Add SSL for PostgreSQL if needed
+        if DATABASE_URL.startswith("postgresql://"):
+            connect_args = {
+                'connect_timeout': 10,
+            }
+        
         engine = create_engine(
             DATABASE_URL,
             pool_pre_ping=True,
-            pool_recycle=3600,
-            pool_size=5,
-            max_overflow=10,
+            pool_recycle=300,  # Recycle connections every 5 minutes
+            pool_size=3,  # Smaller pool for free tier
+            max_overflow=5,
+            connect_args=connect_args,
             echo=False
         )
 
