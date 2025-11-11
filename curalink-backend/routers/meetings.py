@@ -128,28 +128,55 @@ async def update_meeting_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update meeting request status (accept/reject)"""
+    """Update meeting request status (accept/reject)
+    
+    - Both expert and requester can update the status
+    - Expert can accept/reject the meeting
+    - Requester can cancel the meeting
+    """
     meeting_request = db.query(MeetingRequest).filter(
         MeetingRequest.id == request_id
     ).first()
     
     if not meeting_request:
-        raise HTTPException(status_code=404, detail="Meeting request not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Meeting request not found"
+        )
     
-    # Only expert can update status
-    if meeting_request.expert_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the expert can update this request")
+    # Check if current user is either the expert or the requester
+    if meeting_request.expert_id != current_user.id and meeting_request.requester_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to update this meeting request"
+        )
     
-    new_status = status_data.get("status")
+    new_status = status_data.get("status", "").lower()
     
     if not new_status:
-        raise HTTPException(status_code=400, detail="Status field is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status field is required and must be 'accepted', 'rejected', or 'cancelled'"
+        )
     
-    # Accept both 'rejected' and 'declined' for backwards compatibility
-    if new_status == "declined":
+    # Normalize status values
+    if new_status in ["declined", "reject"]:
         new_status = "rejected"
-    if new_status not in ["accepted", "rejected"]:
-        raise HTTPException(status_code=400, detail=f"Invalid status '{new_status}'. Must be 'accepted', 'rejected', or 'declined'")
+    elif new_status in ["cancel", "cancelled"]:
+        new_status = "cancelled"
+    
+    # Validate status transition
+    if meeting_request.status == "accepted" and new_status not in ["cancelled"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An accepted meeting can only be cancelled"
+        )
+    
+    if new_status not in ["accepted", "rejected", "cancelled"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status '{new_status}'. Must be 'accepted', 'rejected', or 'cancelled'"
+        )
     
     meeting_request.status = new_status
     db.commit()
