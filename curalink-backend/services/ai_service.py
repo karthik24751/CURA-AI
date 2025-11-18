@@ -194,8 +194,31 @@ Location: [location if mentioned, otherwise "Not specified"]"""
             return {"condition": text, "location": None}
     
     async def summarize_publication(self, title: str, abstract: str) -> str:
-        """Generate AI summary for a publication with intelligent fallback"""
-        # Use simple fallback for now to reduce API calls
+        """Generate AI-powered summary for a publication with fallback"""
+        if not abstract or len(abstract.strip()) < 50:
+            return abstract or "No abstract available"
+        
+        # Try AI summarization first
+        try:
+            if self.api_key:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": "You are a medical research summarizer. Create a concise, easy-to-understand summary of scientific abstracts in 2-3 sentences. Focus on key findings, methods, and implications. Use simple language accessible to patients and researchers."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Title: {title}\n\nAbstract: {abstract}\n\nPlease provide a clear, concise summary in 2-3 sentences:"
+                    }
+                ]
+                
+                ai_summary = await self._make_request(messages, temperature=0.3)
+                if ai_summary and len(ai_summary) > 20:
+                    return ai_summary
+        except Exception as e:
+            print(f"AI summarization failed, using fallback: {e}")
+        
+        # Fallback to simple text processing
         if len(abstract) <= 200:
             return abstract
         
@@ -207,10 +230,33 @@ Location: [location if mentioned, otherwise "Not specified"]"""
         return abstract[:200] + "..."
     
     async def summarize_clinical_trial(self, title: str, summary: str, detailed: str = "") -> str:
-        """Generate AI summary for a clinical trial with simple fallback"""
+        """Generate AI-powered summary for a clinical trial with fallback"""
         content = detailed if detailed else summary
         
-        # Use simple text processing to reduce API calls
+        if not content or len(content.strip()) < 50:
+            return content or "No trial description available"
+        
+        # Try AI summarization first
+        try:
+            if self.api_key:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": "You are a clinical trial summarizer. Create a concise, patient-friendly summary of clinical trials in 2-3 sentences. Explain the purpose, who can participate, and key details in simple terms. Focus on what patients need to know."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Trial Title: {title}\n\nDescription: {content}\n\nPlease provide a clear, concise summary for patients in 2-3 sentences:"
+                    }
+                ]
+                
+                ai_summary = await self._make_request(messages, temperature=0.3)
+                if ai_summary and len(ai_summary) > 20:
+                    return ai_summary
+        except Exception as e:
+            print(f"AI trial summarization failed, using fallback: {e}")
+        
+        # Fallback to simple text processing
         if len(content) <= 200:
             return content
         
@@ -249,31 +295,97 @@ Keep responses concise and helpful."""
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
     
     async def recommend_experts(self, condition: str, researchers: list) -> list:
-        """Rank and recommend experts based on condition match"""
-        if not self.api_key or not researchers:
-            return researchers[:5]  # Return first 5 if AI unavailable
+        """Rank and recommend experts based on condition match with scores"""
+        if not researchers:
+            return []
         
         try:
-            # Simple keyword matching fallback (keeping this as it's efficient)
+            # Enhanced scoring with multiple factors
             condition_keywords = condition.lower().split()
+            location_keywords = []  # Could be extracted from user profile
+            
             scored_researchers = []
             
             for researcher in researchers:
                 score = 0
-                research_text = f"{researcher.get('specialty', '')} {researcher.get('research_interests', '')}".lower()
+                max_score = 100
                 
-                for keyword in condition_keywords:
-                    if keyword in research_text:
-                        score += 1
+                # Specialty matching (40% weight)
+                specialty_text = researcher.get('specialty', '').lower()
+                specialty_matches = sum(1 for keyword in condition_keywords if keyword in specialty_text)
+                score += (specialty_matches / max(1, len(condition_keywords))) * 40
                 
-                scored_researchers.append((score, researcher))
+                # Research interests matching (35% weight)
+                interests_text = researcher.get('research_interests', '').lower()
+                interests_matches = sum(1 for keyword in condition_keywords if keyword in interests_text)
+                score += (interests_matches / max(1, len(condition_keywords))) * 35
+                
+                # Institution prestige (10% weight) - simple heuristic
+                institution = researcher.get('institution', '').lower()
+                prestige_keywords = ['harvard', 'stanford', 'mit', 'johns hopkins', 'mayo clinic', 'cleveland clinic', 'mass general', 'nih']
+                if any(keyword in institution for keyword in prestige_keywords):
+                    score += 10
+                
+                # Verification bonus (10% weight)
+                if researcher.get('verified', False):
+                    score += 10
+                
+                # Availability bonus (5% weight)
+                if researcher.get('available_for_meetings', True):
+                    score += 5
+                
+                # Cap at 100%
+                score = min(score, 100)
+                
+                scored_researchers.append({
+                    **researcher,
+                    'match_score': round(score),
+                    'match_reason': self._generate_match_reason(score, researcher, condition)
+                })
             
-            # Sort by score and return top matches
-            scored_researchers.sort(key=lambda x: x[0], reverse=True)
-            return [r[1] for r in scored_researchers[:10]]
+            # Sort by score descending
+            scored_researchers.sort(key=lambda x: x['match_score'], reverse=True)
+            return scored_researchers
+            
         except Exception as e:
             print(f"Error recommending experts: {e}")
-            return researchers[:5]
+            # Return researchers with default scores if AI fails
+            return [{
+                **researcher,
+                'match_score': 50,
+                'match_reason': 'General match based on research area'
+            } for researcher in researchers[:10]]
+    
+    def _generate_match_reason(self, score: float, researcher: dict, condition: str) -> str:
+        """Generate human-readable match reason"""
+        reasons = []
+        
+        if score >= 90:
+            reasons.append("Excellent match")
+        elif score >= 80:
+            reasons.append("Strong match")
+        elif score >= 70:
+            reasons.append("Good match")
+        elif score >= 60:
+            reasons.append("Moderate match")
+        else:
+            reasons.append("Potential match")
+        
+        specialty = researcher.get('specialty', '')
+        if specialty:
+            reasons.append(f"specializes in {specialty}")
+        
+        institution = researcher.get('institution', '')
+        if institution:
+            reasons.append(f"at {institution}")
+        
+        condition_keywords = condition.lower().split()
+        interests = researcher.get('research_interests', '').lower()
+        matching_keywords = [kw for kw in condition_keywords if kw in interests]
+        if matching_keywords:
+            reasons.append(f"research includes {', '.join(matching_keywords[:2])}")
+        
+        return " - ".join(reasons)
 
 # Global AI service instance
 ai_service = AIService()

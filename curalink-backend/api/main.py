@@ -238,79 +238,20 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
 # Trials Endpoints (Your Original Trials System)
 @app.get("/api/trials/")
 async def get_trials():
-    # Sample trial data (in production, fetch from external API)
-    sample_trials = [
-        {
-            "nct_id": "NCT12345678",
-            "title": "Advanced Diabetes Treatment Study",
-            "summary": "A comprehensive study on new diabetes treatment methods",
-            "condition": "Diabetes Type 2",
-            "location": "New York, NY",
-            "phase": "Phase 3",
-            "status": "Recruiting",
-            "sponsor": "Medical Research Institute"
-        },
-        {
-            "nct_id": "NCT87654321",
-            "title": "Cancer Immunotherapy Trial",
-            "summary": "Testing new immunotherapy approaches for cancer treatment",
-            "condition": "Cancer",
-            "location": "Boston, MA",
-            "phase": "Phase 2",
-            "status": "Active",
-            "sponsor": "Cancer Research Center"
-        }
-    ]
-    
-    return {"data": sample_trials}
+    # Return empty data - trials should be fetched from real APIs
+    return {"data": []}
 
 # Publications Endpoints (Your Original Publications System)
 @app.get("/api/publications/")
 async def get_publications():
-    sample_publications = [
-        {
-            "id": "1",
-            "title": "Breakthrough in Diabetes Research",
-            "authors": "Dr. Smith, Dr. Johnson",
-            "journal": "Nature Medicine",
-            "year": 2024,
-            "abstract": "Recent discoveries in diabetes treatment mechanisms..."
-        },
-        {
-            "id": "2",
-            "title": "AI in Healthcare Diagnostics",
-            "authors": "Dr. Wilson, Dr. Brown",
-            "journal": "Science",
-            "year": 2024,
-            "abstract": "Application of artificial intelligence in medical diagnostics..."
-        }
-    ]
-    
-    return {"data": sample_publications}
+    # Return empty data - publications should be fetched from real APIs
+    return {"data": []}
 
 # Experts Endpoints (Your Original Experts System)
 @app.get("/api/experts/")
 async def get_experts():
-    sample_experts = [
-        {
-            "id": 1,
-            "full_name": "Dr. Sarah Johnson",
-            "specialty": "Endocrinology",
-            "institution": "Harvard Medical School",
-            "verified": True,
-            "research_interests": "Diabetes, Metabolism"
-        },
-        {
-            "id": 2,
-            "full_name": "Dr. Michael Chen",
-            "specialty": "Oncology",
-            "institution": "Stanford University",
-            "verified": True,
-            "research_interests": "Cancer Immunotherapy"
-        }
-    ]
-    
-    return {"data": sample_experts}
+    # Return empty data - experts should be fetched from database
+    return {"data": []}
 
 # Meetings Endpoints (Your Original Meeting System)
 @app.get("/api/meetings/")

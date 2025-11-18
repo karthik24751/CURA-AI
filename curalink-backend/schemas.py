@@ -84,6 +84,7 @@ class ForumCreate(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
+    created_by: Optional[int] = None  # Add this field
 
 class Forum(ForumCreate):
     id: int
@@ -96,6 +97,9 @@ class ForumPostCreate(BaseModel):
     forum_id: int
     content: str
     parent_id: Optional[int] = None
+
+class ForumPostUpdate(BaseModel):
+    content: str
 
 class ForumPost(ForumPostCreate):
     id: int
@@ -185,6 +189,22 @@ class NotificationResponse(BaseModel):
     from_user: Optional[str] = None
     meeting_id: Optional[int] = None
     read: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Follow Schemas
+class FollowBase(BaseModel):
+    follower_id: int
+    followed_id: int
+    status: str
+
+class FollowCreate(BaseModel):
+    followed_id: int
+
+class Follow(FollowBase):
+    id: int
     created_at: datetime
     
     class Config:

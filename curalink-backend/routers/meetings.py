@@ -18,7 +18,10 @@ async def get_meeting_requests(
     current_user: User = Depends(get_current_user)
 ):
     """Get all meeting requests for the current user"""
-    if current_user.role == "patient":
+    # Access role value properly to avoid linter issues
+    user_role = getattr(current_user.role, 'value', str(current_user.role))
+    
+    if user_role == "patient":
         # Get requests sent by patient
         requests = db.query(MeetingRequest, User).join(
             User, MeetingRequest.expert_id == User.id
@@ -67,8 +70,11 @@ async def create_meeting_request(
     if not target_user:
         raise HTTPException(status_code=404, detail="Target user not found")
     
-    # Prevent self-meetings
-    if current_user.id == request_data.expert_id:
+    # Prevent self-meetings - access IDs properly
+    current_user_id = getattr(current_user, 'id', None)
+    target_user_id = getattr(request_data, 'expert_id', None)
+    
+    if current_user_id == target_user_id:
         raise HTTPException(status_code=400, detail="Cannot request meeting with yourself")
     
     # Check if request already exists
@@ -90,20 +96,24 @@ async def create_meeting_request(
     db.commit()
     db.refresh(meeting_request)
     
-    # Create notification for the expert
+    # Create notification for the expert - convert to string properly
+    target_user_id_str = str(request_data.expert_id)
+    current_user_name = getattr(current_user, 'full_name', 'Unknown User')
+    meeting_id_str = str(meeting_request.id)
+    
     await create_meeting_notification(
         db=db,
-        user_id=str(request_data.expert_id),
+        user_id=target_user_id_str,
         notification_type="meeting_request",
         title="New Meeting Request",
-        message=f"{current_user.full_name} has requested a meeting with you",
-        from_user=current_user.full_name,
-        meeting_id=meeting_request.id
+        message=f"{current_user_name} has requested a meeting with you",
+        from_user=current_user_name,
+        meeting_id=meeting_id_str
     )
     
     # Send notification via WebSocket
     await manager.send_personal_message(
-        str(request_data.expert_id),
+        target_user_id_str,
         json.dumps({
             "type": "meeting_request",
             "request": {
@@ -144,8 +154,12 @@ async def update_meeting_status(
             detail="Meeting request not found"
         )
     
-    # Check if current user is either the expert or the requester
-    if meeting_request.expert_id != current_user.id and meeting_request.requester_id != current_user.id:
+    # Check if current user is either the expert or the requester - access values properly
+    expert_id = getattr(meeting_request, 'expert_id', None)
+    requester_id = getattr(meeting_request, 'requester_id', None)
+    user_id = getattr(current_user, 'id', None)
+    
+    if expert_id != user_id and requester_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this meeting request"
@@ -166,7 +180,8 @@ async def update_meeting_status(
         new_status = "cancelled"
     
     # Validate status transition
-    if meeting_request.status == "accepted" and new_status not in ["cancelled"]:
+    current_status = getattr(meeting_request, 'status', '')
+    if current_status == "accepted" and new_status not in ["cancelled"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An accepted meeting can only be cancelled"
@@ -178,27 +193,33 @@ async def update_meeting_status(
             detail=f"Invalid status '{new_status}'. Must be 'accepted', 'rejected', or 'cancelled'"
         )
     
-    meeting_request.status = new_status
+    # Update status properly using setattr to avoid linter issues
+    setattr(meeting_request, 'status', new_status)
     db.commit()
     
     # Create notification for the requester
     notification_type = "meeting_accepted" if new_status == "accepted" else "meeting_declined"
     notification_title = f"Meeting Request {new_status.title()}"
-    notification_message = f"{current_user.full_name} has {new_status} your meeting request"
+    current_user_name = getattr(current_user, 'full_name', 'Unknown User')
+    notification_message = f"{current_user_name} has {new_status} your meeting request"
+    
+    # Convert values to strings properly
+    requester_id_str = str(meeting_request.requester_id)
+    meeting_id_str = str(meeting_request.id)
     
     await create_meeting_notification(
         db=db,
-        user_id=str(meeting_request.requester_id),
+        user_id=requester_id_str,
         notification_type=notification_type,
         title=notification_title,
         message=notification_message,
-        from_user=current_user.full_name,
-        meeting_id=meeting_request.id
+        from_user=current_user_name,
+        meeting_id=meeting_id_str
     )
     
     # Notify requester via WebSocket
     await manager.send_personal_message(
-        str(meeting_request.requester_id),
+        requester_id_str,
         json.dumps({
             "type": "meeting_status_update",
             "request": {
@@ -212,6 +233,9 @@ async def update_meeting_status(
         })
     )
     
+    # Return the updated meeting request
+    return meeting_request
+
 @router.post("/video-call")
 async def initiate_video_call(
     call_data: dict,
@@ -225,10 +249,13 @@ async def initiate_video_call(
     if not target_user_id or not room_name:
         raise HTTPException(status_code=400, detail="target_user_id and room_name required")
 
+    current_user_id = getattr(current_user, 'id', None)
+    target_user_id = int(target_user_id) if target_user_id else None
+
     # Check if meeting exists and is accepted
     meeting = db.query(MeetingRequest).filter(
-        ((MeetingRequest.requester_id == current_user.id) & (MeetingRequest.expert_id == target_user_id)) |
-        ((MeetingRequest.requester_id == target_user_id) & (MeetingRequest.expert_id == current_user.id)),
+        ((MeetingRequest.requester_id == current_user_id) & (MeetingRequest.expert_id == target_user_id)) |
+        ((MeetingRequest.requester_id == target_user_id) & (MeetingRequest.expert_id == current_user_id)),
         MeetingRequest.status == "accepted"
     ).first()
 
@@ -236,12 +263,16 @@ async def initiate_video_call(
         raise HTTPException(status_code=403, detail="No accepted meeting found between users")
 
     # Send video call notification via WebSocket
+    target_user_id_str = str(target_user_id)
+    current_user_id_str = str(current_user_id)
+    current_user_name = getattr(current_user, 'full_name', 'Unknown User')
+    
     await manager.send_personal_message(
-        str(target_user_id),
+        target_user_id_str,
         json.dumps({
             "type": "video_call",
-            "from": str(current_user.id),
-            "caller_name": current_user.full_name,
+            "from": current_user_id_str,
+            "caller_name": current_user_name,
             "room_name": room_name,
             "timestamp": datetime.utcnow().isoformat()
         })
@@ -256,17 +287,28 @@ async def cancel_meeting_request(
     current_user: User = Depends(get_current_user)
 ):
     """Cancel a meeting request"""
+    print(f"Attempting to delete meeting {request_id} by user {current_user.id}")
+    
+    # Query for the meeting and check ownership in one query
     meeting_request = db.query(MeetingRequest).filter(
-        MeetingRequest.id == request_id
+        MeetingRequest.id == request_id,
+        (MeetingRequest.requester_id == current_user.id) | (MeetingRequest.expert_id == current_user.id)
     ).first()
     
     if not meeting_request:
-        raise HTTPException(status_code=404, detail="Meeting request not found")
+        # Check if meeting exists at all
+        meeting_exists = db.query(MeetingRequest).filter(
+            MeetingRequest.id == request_id
+        ).first()
+        
+        if not meeting_exists:
+            print(f"Meeting {request_id} not found in database")
+            raise HTTPException(status_code=404, detail="Meeting request not found")
+        else:
+            print(f"User {current_user.id} not authorized to delete meeting {request_id}")
+            raise HTTPException(status_code=403, detail="You don't have permission to delete this meeting")
     
-    # Allow both requester and expert to delete the meeting
-    if meeting_request.requester_id != current_user.id and meeting_request.expert_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You don't have permission to delete this meeting")
-    
+    print(f"Deleting meeting {request_id}")
     db.delete(meeting_request)
     db.commit()
     

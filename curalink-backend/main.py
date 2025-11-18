@@ -5,9 +5,10 @@ import uvicorn
 from typing import List
 import json
 import hashlib
+import time
 
 from database import engine, Base, get_db
-from routers import auth, users, trials, publications, experts, forums, favorites, chat, meetings, notifications
+from routers import auth, users, trials, publications, experts, forums, favorites, chat, meetings, notifications, follows, analytics, researcher_trials, collaborators
 
 try:
     from websocket_manager import manager
@@ -70,6 +71,10 @@ try:
     app.include_router(chat.router, prefix="/api/chat", tags=["AI Chat"])
     app.include_router(meetings.router, prefix="/api/meetings", tags=["Meetings"])
     app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+    app.include_router(follows.router, prefix="/api/follows", tags=["Follows"])
+    app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics & Insights"])
+    app.include_router(researcher_trials.router, prefix="/api/researcher/trials", tags=["Researcher Trials"])
+    app.include_router(collaborators.router, prefix="/api/collaborators", tags=["Collaborators"])
     print("✅ All routers included successfully")
 except Exception as e:
     print(f"❌ Router inclusion error: {e}")
@@ -138,6 +143,46 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                             "message": message_data.get("message"),
                             "created_at": message_data.get("timestamp")
                         }
+                    })
+                )
+            elif message_data.get("type") == "call_request":
+                # Handle incoming call request
+                target_user_id = str(message_data.get("targetUserId"))
+                await manager.send_personal_message(
+                    target_user_id,
+                    json.dumps({
+                        "type": "call_request",
+                        "callerName": message_data.get("callerName"),
+                        "callerId": message_data.get("callerId"),
+                        "roomName": message_data.get("roomName"),
+                        "timestamp": message_data.get("timestamp", int(time.time() * 1000))
+                    })
+                )
+            elif message_data.get("type") == "call_accepted":
+                # Handle call accepted notification
+                caller_id = str(message_data.get("callerId"))
+                await manager.send_personal_message(
+                    caller_id,
+                    json.dumps({
+                        "type": "call_accepted",
+                        "roomName": message_data.get("roomName"),
+                        "callerId": message_data.get("callerId"),
+                        "targetId": message_data.get("targetId"),
+                        "timestamp": message_data.get("timestamp", int(time.time() * 1000))
+                    })
+                )
+            elif message_data.get("type") == "call_decline":
+                # Handle call decline notification
+                caller_id = str(message_data.get("callerId"))
+                await manager.send_personal_message(
+                    caller_id,
+                    json.dumps({
+                        "type": "call_decline",
+                        "roomName": message_data.get("roomName"),
+                        "callerId": message_data.get("callerId"),
+                        "callerName": message_data.get("callerName"),
+                        "targetId": message_data.get("targetId"),
+                        "timestamp": message_data.get("timestamp", int(time.time() * 1000))
                     })
                 )
     except WebSocketDisconnect:
